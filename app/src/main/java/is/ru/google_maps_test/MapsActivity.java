@@ -242,19 +242,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Log.d("resultslist size: ", String.valueOf(resultsList.size()));
 
         // Add a marker in Sydney and move the camera
-        LatLng isafjordur = new LatLng(66.07475, -23.13498);
-        mMap.addMarker(new MarkerOptions().position(isafjordur).title("isafjordur"));
-
-        LatLng akureyri = new LatLng(65.6833306, -18.0999996);
-        mMap.addMarker(new MarkerOptions().position(akureyri).title("Akureyri"));
+        //LatLng isafjordur = new LatLng(66.07475, -23.13498);
+        //mMap.addMarker(new MarkerOptions().position(isafjordur).title("isafjordur"));
+        //LatLng akureyri = new LatLng(65.6833306, -18.0999996);
+        //mMap.addMarker(new MarkerOptions().position(akureyri).title("Akureyri"));
 
         for(int i=0; i < resultsList.size(); i++){
             HashMap<String, String> camera_feed = resultsList.get(i);
             String data_name = camera_feed.get("data_name");
-            Log.d("1results: ", String.valueOf(data_name));
-        }
+            String data_url = camera_feed.get("data_url");
+            String data_lat = camera_feed.get("data_lat");
+            String data_long = camera_feed.get("data_long");
 
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(isafjordur));
+            double i_lat = Double.valueOf(data_lat);
+            double i_long = Double.valueOf(data_long);
+            //Log.d("1results: ", String.valueOf(data_name));
+            LatLng i_position = new LatLng(i_lat, i_long);
+            mMap.addMarker(new MarkerOptions().position(i_position).title(data_name));
+
+        }
+        LatLng iceland = new LatLng(64.9312762, -19.0211697);
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(iceland));
 
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
