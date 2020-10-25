@@ -12,6 +12,9 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.PolylineOptions;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -51,11 +54,20 @@ public class JsonData extends AppCompatActivity {
         txtJson = (TextView) findViewById(R.id.textView);
         resultsList = new ArrayList<>();
 
-        new JsonTask().execute("https://icelandnow.cdn.prismic.io/api/v2/documents/search?ref=X4rX7xAAACAA_8Ip&pageSize=100#format=json");
+        JsonTask str_result = new JsonTask(resultsList);
+        str_result.execute("https://icelandnow.cdn.prismic.io/api/v2/documents/search?ref=X4rX7xAAACAA_8Ip&pageSize=100#format=json");
+        Log.d("resultslist size: ", String.valueOf(txtJson));
     }
 
 
-    private class JsonTask extends AsyncTask<String, String, String> {
+    public class JsonTask extends AsyncTask<String, String, String> {
+        ArrayList<HashMap<String, String>> results;
+        ArrayList<LatLng> points;
+        PolylineOptions lineOptions = null;
+
+        public JsonTask(ArrayList<HashMap<String, String>> results){
+            this.results = results;
+        }
 
         protected void onPreExecute() {
             super.onPreExecute();
@@ -123,21 +135,12 @@ public class JsonData extends AppCompatActivity {
             try {
                 JSONObject jsonObj = new JSONObject(result);;
                 JSONArray result_array = jsonObj.getJSONArray("results");
+                points = new ArrayList<>();
+                lineOptions = new PolylineOptions();
 
                 for(int i=0; i < result_array.length(); i++){
 
                     JSONObject results_filtered = result_array.getJSONObject(i);
-                    String id = results_filtered.getString("id");
-                    String uid = results_filtered.getString("uid");
-                    String type = results_filtered.getString("type");
-                    String href = results_filtered.getString("href");
-                    String tags = results_filtered.getString("tags");
-                    String first_publication_date = results_filtered.getString("first_publication_date");
-                    String last_publication_date = results_filtered.getString("last_publication_date");
-                    String slugs = results_filtered.getString("slugs");
-                    String linked_documents = results_filtered.getString("linked_documents");
-                    String lang = results_filtered.getString("lang");
-                    String alternate_languages = results_filtered.getString("alternate_languages");
 
                     // data node is JSON Object
                     JSONObject data_filtered = results_filtered.getJSONObject("data");
@@ -152,16 +155,14 @@ public class JsonData extends AppCompatActivity {
                     txtJson.setText(data_name);
                     // tmp hash map for single camera feed
                     HashMap<String, String> camera_feed = new HashMap<>();
-                    // add each child node to Hashmap key => value
-                    camera_feed.put("id", id);
-                    //camera_feed.put("type", type);
-                    //camera_feed.put("data_url", data_url);
-                    //camera_feed.put("", );
-                    //camera_feed.put("", );
-                    //camera_feed.put("", );
-                    //camera_feed.put("", );
+                    camera_feed.put("data_name", data_name);
+                    camera_feed.put("data_url", data_url);
+                    camera_feed.put("data_lat", data_lat);
+                    camera_feed.put("data_long", data_long);
                     resultsList.add(camera_feed);
                 }
+                String frnames[] = resultsList.toArray(new String[resultsList.size()]);
+                txtJson.setText(frnames[0]);
 
                 //Intent intent  = new Intent(getApplicationContext(), MapsActivity.class);
                 //intent.putExtra("message", resultsList);

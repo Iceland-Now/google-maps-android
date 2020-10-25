@@ -6,6 +6,7 @@ import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
@@ -32,6 +33,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -60,7 +63,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_maps);
         resultsList = new ArrayList<>();
 
-        new JsonTask().execute("https://icelandnow.cdn.prismic.io/api/v2/documents/search?ref=X5BrfxAAACIAGIHl&pageSize=100#format=json");
+        //new JsonTask().execute("https://icelandnow.cdn.prismic.io/api/v2/documents/search?ref=X5BrfxAAACIAGIHl&pageSize=100#format=json");
+        try {
+            JSONObject jsonObj = new JSONObject(loadJSONFromAsset());
+            JSONArray result_array = jsonObj.getJSONArray("results");
+            ArrayList<HashMap<String, String>> camera_feed_results = new ArrayList<>();
+            for(int i=0; i < result_array.length(); i++){
+                JSONObject results_filtered = result_array.getJSONObject(i);
+                JSONObject data_filtered = results_filtered.getJSONObject("data");
+                String data_name = data_filtered.getString("name");
+                String data_url = data_filtered.getString("url");
+                String data_category = data_filtered.getString("category");
+                String data_provider = data_filtered.getString("provider");
+                String data_photovideo = data_filtered.getString("photovideo");
+                String data_lat = data_filtered.getString("lat");
+                String data_long = data_filtered.getString("long");
+
+                //txtJson.setText(data_name);
+                // tmp hash map for single camera feed
+                HashMap<String, String> camera_feed = new HashMap<>();
+                // add each child node to Hashmap key => value
+                camera_feed.put("data_name", data_name);
+                camera_feed.put("data_url", data_url);
+                camera_feed.put("data_lat", data_lat);
+                camera_feed.put("data_long", data_long);
+                resultsList.add(camera_feed);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -69,7 +100,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    private class JsonTask extends AsyncTask<String, String, String> {
+    public void updateResponseList(ArrayList<HashMap<String, String>> arr) {
+        resultsList = arr;
+    }
+
+    public String loadJSONFromAsset() {
+        String json = null;
+        try {
+            InputStream is = getAssets().open("iceland-now-json.json");
+            int size = is.available();
+            byte[] buffer = new byte[size];
+            is.read(buffer);
+            is.close();
+            json = new String(buffer, "UTF-8");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return null;
+        }
+        return json;
+    }
+
+    public class JsonTask extends AsyncTask<String, String, String> {
 
         protected void onPreExecute() {
             super.onPreExecute();
@@ -107,7 +158,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 try {
                     JSONObject jsonObj = new JSONObject(String.valueOf(buffer));
                     JSONArray result_array = jsonObj.getJSONArray("results");
-
+                    ArrayList<HashMap<String, String>> camera_feed_results = new ArrayList<>();
                     for(int i=0; i < result_array.length(); i++){
                         JSONObject results_filtered = result_array.getJSONObject(i);
                         JSONObject data_filtered = results_filtered.getJSONObject("data");
@@ -127,8 +178,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         camera_feed.put("data_url", data_url);
                         camera_feed.put("data_lat", data_lat);
                         camera_feed.put("data_long", data_long);
-                        resultsList.add(camera_feed);
+                        camera_feed_results.add(camera_feed);
                     }
+                    updateResponseList(camera_feed_results);
                     //Intent intent  = new Intent(getApplicationContext(), MapsActivity.class);
                     //intent.putExtra("message", resultsList);
                     //startActivity(intent);
@@ -187,62 +239,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        /*
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            // public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                      int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
+        Log.d("resultslist size: ", String.valueOf(resultsList.size()));
 
-        if(locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, new LocationListener() {
-                @Override
-                public void onLocationChanged(@NonNull Location location) {
-                    double latidute = location.getLatitude();
-                    double longidite = location.getLongitude();
-                    LatLng latLng = new LatLng(latidute,longidite);
-                    Geocoder geocoder = new Geocoder(getApplicationContext());
-
-                    try {
-                        List<Address> addressList = geocoder.getFromLocation(latidute, longidite,1);
-                        String str = addressList.get(0).getCountryName();
-                        mMap.addMarker(new MarkerOptions().position(latLng).title("Own location"));
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom((latLng), 5.2f));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                }
-            });
-        } else if(locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, new LocationListener() {
-                @Override
-                public void onLocationChanged(@NonNull Location location) {
-                    double latidute = location.getLatitude();
-                    double longidite = location.getLongitude();
-                    LatLng latLng = new LatLng(latidute,longidite);
-                    Geocoder geocoder = new Geocoder(getApplicationContext());
-
-                    try {
-                        List<Address > addressList = geocoder.getFromLocation(latidute, longidite,1);
-                        String str = addressList.get(0).getCountryName();
-                        mMap.addMarker(new MarkerOptions().position(latLng).title("Own location"));
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom((latLng), 5.2f));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                }
-
-            });
-        }
-        */
         // Add a marker in Sydney and move the camera
         LatLng isafjordur = new LatLng(66.07475, -23.13498);
         mMap.addMarker(new MarkerOptions().position(isafjordur).title("isafjordur"));
@@ -251,7 +249,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.addMarker(new MarkerOptions().position(akureyri).title("Akureyri"));
 
         for(int i=0; i < resultsList.size(); i++){
-            Log.d("1results: ", String.valueOf(resultsList.get(i)));
+            HashMap<String, String> camera_feed = resultsList.get(i);
+            String data_name = camera_feed.get("data_name");
+            Log.d("1results: ", String.valueOf(data_name));
         }
 
         mMap.moveCamera(CameraUpdateFactory.newLatLng(isafjordur));
