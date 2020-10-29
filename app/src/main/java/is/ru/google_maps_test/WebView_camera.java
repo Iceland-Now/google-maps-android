@@ -2,6 +2,7 @@ package is.ru.google_maps_test;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -17,7 +18,10 @@ public class WebView_camera extends AppCompatActivity {
         webView = (WebView) findViewById(R.id.webview);
         webView.setWebViewClient(new WebViewClient());
 
-        webView.loadUrl("https://www.livefromiceland.is/webcams/reykjavikurtjorn/");
+        Intent intent = getIntent();
+        String data_url = intent.getStringExtra("data_url");
+
+        webView.loadUrl(data_url);
 
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
